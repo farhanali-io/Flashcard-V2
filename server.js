@@ -14,8 +14,9 @@ app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 
 // Heuristic fallback flashcard extractor
-function generateCardsHeuristically(text, maxCount = 12) {
+function generateCardsHeuristically(text, requestedCount = 12) {
   if (!text || typeof text !== 'string') return [];
+  const target = Math.min(Math.max(parseInt(requestedCount, 10) || 12, 4), 50);
   const clean = text
     .replace(/\r\n/g, '\n')
     .replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]|\b\d{1,2}:\d{2}\b/g, '') // remove timestamps
@@ -23,6 +24,12 @@ function generateCardsHeuristically(text, maxCount = 12) {
     .trim();
 
   if (clean.length < 20) return [];
+
+  // If text is extensive (>1200 chars), automatically allow expanding up to 36 cards
+  // If text is short, stick to target as upper bound, never adding artificial fluff
+  const maxCount = clean.length > 1200
+    ? Math.max(target, Math.min(36, Math.floor(clean.length / 115)))
+    : target;
 
   const cards = [];
   const seenQ = new Set();
@@ -124,18 +131,24 @@ function generateCardsHeuristically(text, maxCount = 12) {
   return cards.slice(0, maxCount);
 }
 
-// Gemini API generator
-let aiClient = null;
-try {
-  aiClient = new GoogleGenAI({});
-} catch (e) {
-  console.warn('[AI Studio] GoogleGenAI init deferred:', e.message);
+// Initialize Google GenAI client with required aistudio-build User-Agent
+function getAiClient() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
+    },
+  });
 }
 
 // POST /api/generate-cards
 app.post('/api/generate-cards', async (req, res) => {
   const { text, count = 12, topic = '' } = req.body;
-  const numCards = Math.min(Math.max(parseInt(count, 10) || 12, 4), 50);
+  const requestedCount = Math.min(Math.max(parseInt(count, 10) || 12, 4), 50);
 
   if (!text || typeof text !== 'string' || text.trim().length < 15) {
     return res.status(400).json({
@@ -144,59 +157,84 @@ app.post('/api/generate-cards', async (req, res) => {
   }
 
   const trimmedText = text.trim();
+  const client = getAiClient();
 
-  // If GEMINI_API_KEY is available and client initialized, use Gemini 3.8 Flash
-  if (process.env.GEMINI_API_KEY && aiClient) {
-    try {
-      const prompt = `You are a professional academic flashcard creator designed for Anki and active recall.
-Target: Create exactly ${numCards} high-yield, factual study flashcards based ONLY on the provided study text.
+  // If client initialized with key and aistudio-build header, use Gemini
+  if (client) {
+    const prompt = `You are a professional academic flashcard creator designed for Anki and active recall.
+Target guide: The user requested ~${requestedCount} cards, BUT you must dynamically adapt the card count based on the content:
+
+DYNAMIC CARD COUNT RULES:
+1. SHORT / FOCUSED TOPIC:
+   If the study text is short or contains only a few distinct facts, concepts, or definitions, DO NOT inflate, hallucinate, repeat points, or invent random filler just to reach ${requestedCount} cards. Generate ONLY the maximum high-yield cards that the text genuinely supports (e.g. 3, 5, or 8 cards). Zero fluff or low-value filler.
+
+2. LARGE / EXTENSIVE TOPIC:
+   If the study text is extensive, dense, or covers multiple subtopics, mechanisms, formulas, or definitions that cannot fit into ${requestedCount} cards without missing key testable facts, AUTOMATICALLY generate more than ${requestedCount} cards (e.g. 14, 18, 24, up to 40 cards as needed) without asking. Prioritize complete factual coverage over the ${requestedCount} guide so no essential exam facts are omitted.
+
+3. BALANCED TOPIC:
+   Only generate approximately ${requestedCount} cards if the text naturally contains about ${requestedCount} distinct high-yield facts.
+
+FLASHCARD RULES:
+- Question ("q"): Clear, direct study question (e.g. "What is X?", "What is the function of Y?", "How does Z compare to W?"). NEVER use vague meta questions like "What does this note say about...".
+- Answer ("a"): Concise, accurate, direct, and factual (1-3 sentences or bullet points).
+- Maximize active recall value for students preparing for exams.
+
 ${topic ? `Context/Topic: ${topic}` : ''}
-
-Rules:
-1. Question ("q"): Must be a clear, direct study question (e.g. "What is X?", "What is the function of Y?", "How does Z compare to W?"). NEVER use vague meta questions like "What does this note say about...".
-2. Answer ("a"): Concise, accurate, direct, and factual (1-3 sentences or bullet points).
-3. Maximize active recall value for students preparing for exams.
 
 Study Text:
 ${trimmedText.slice(0, 35000)}`;
 
-      const response = await aiClient.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'ARRAY',
-            items: {
-              type: 'OBJECT',
-              properties: {
-                q: { type: 'STRING', description: 'The question or prompt for the front of the card' },
-                a: { type: 'STRING', description: 'The factual answer for the back of the card' }
-              },
-              required: ['q', 'a']
-            }
-          }
+    const schemaConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'ARRAY',
+        items: {
+          type: 'OBJECT',
+          properties: {
+            q: { type: 'STRING', description: 'The question or prompt for the front of the card' },
+            a: { type: 'STRING', description: 'The factual answer for the back of the card' }
+          },
+          required: ['q', 'a']
         }
-      });
-
-      const parsed = JSON.parse(response.text);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return res.json({
-          success: true,
-          model: 'gemini-3.8-flash',
-          cards: parsed.slice(0, numCards)
-        });
       }
-    } catch (err) {
-      console.warn('[Gemini API] Generation error, falling back to smart heuristic:', err.message);
+    };
+
+    // Use high-throughput gemini-3.1-flash-lite, with gemini-3.8-flash as secondary
+    const modelsToTry = ['gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    for (const model of modelsToTry) {
+      try {
+        const response = await client.models.generateContent({
+          model,
+          contents: prompt,
+          config: schemaConfig
+        });
+
+        const parsed = JSON.parse(response.text);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Keep the adaptively generated count without truncating down to requestedCount!
+          const finalCards = parsed.slice(0, 50);
+          return res.json({
+            success: true,
+            model,
+            requestedCount,
+            actualCount: finalCards.length,
+            cards: finalCards
+          });
+        }
+      } catch (_err) {
+        // Gracefully attempt next model without crashing
+        continue;
+      }
     }
   }
 
   // Smart heuristic fallback
-  const cards = generateCardsHeuristically(trimmedText, numCards);
+  const cards = generateCardsHeuristically(trimmedText, requestedCount);
   return res.json({
     success: true,
     model: 'heuristic',
+    requestedCount,
+    actualCount: cards.length,
     cards
   });
 });

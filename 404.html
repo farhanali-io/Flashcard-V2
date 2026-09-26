@@ -18,7 +18,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  
+  <script>
+    (function(){
+      var t=localStorage.getItem("toolgenie_theme");
+      if(!t&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)t="dark";
+      if(t)document.documentElement.setAttribute("data-theme",t);
+    })();
+  </script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -29,14 +35,20 @@
       <a href="index.html">Flashcards</a>
       <a href="pdf-to-flashcards.html">PDF → cards</a>
       <a href="youtube-to-flashcards.html">YouTube → cards</a>
-      <a href="lecture-notes-to-flashcards.html">Lectures</a>
-      <a href="anki-export.html">Anki export</a>
+      <a href="lecture-notes-to-flashcards.html">Lecture → cards</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
     </nav>
-    <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-expanded="false" type="button">
-      <span class="bar"></span>
-      <span class="bar"></span>
-      <span class="bar"></span>
-    </button>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Switch to dark mode" title="Switch theme" type="button">
+        <span class="theme-icon">🌙</span>
+      </button>
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-expanded="false" type="button">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -55,7 +67,6 @@
           <a href="pdf-to-flashcards.html" class="menu-item"><span class="menu-icon">📄</span> <span><strong>PDF to Flashcards</strong><small>Extract &amp; study textbook slides</small></span></a>
           <a href="youtube-to-flashcards.html" class="menu-item"><span class="menu-icon">🎥</span> <span><strong>YouTube Transcript Cards</strong><small>Clean timestamps &amp; turn to cards</small></span></a>
           <a href="lecture-notes-to-flashcards.html" class="menu-item"><span class="menu-icon">📑</span> <span><strong>Lecture Notes &amp; Files</strong><small>Drop slides, notes &amp; syllabus</small></span></a>
-          <a href="anki-export.html" class="menu-item"><span class="menu-icon">📥</span> <span><strong>Anki CSV Export</strong><small>Preview &amp; export clean CSVs</small></span></a>
         </nav>
       </div>
 
@@ -101,8 +112,7 @@
       <a href="index.html">AI flashcard generator</a><br>
       <a href="pdf-to-flashcards.html">PDF to flashcards</a><br>
       <a href="youtube-to-flashcards.html">YouTube to flashcards</a><br>
-      <a href="lecture-notes-to-flashcards.html">Lecture notes to flashcards</a><br>
-      <a href="anki-export.html">Anki export</a>
+      <a href="lecture-notes-to-flashcards.html">Lecture notes to flashcards</a>
     </div>
     <div>
       <strong>Site</strong><br>

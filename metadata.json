@@ -2,5 +2,6 @@
   "name": "Tool Genie - AI Flashcard Generator",
   "description": "Turn notes, PDFs, and lectures into study cards you can edit and export for Anki.",
   "permissions": [],
-  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

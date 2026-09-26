@@ -3,16 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PDF to Flashcards | Tool Genie</title>
-  <meta name="description" content="Turn a study PDF into question-and-answer flashcards. Paste extracted text now; file upload is next. Export CSV for Anki.">
+  <title>PDF to Flashcards Converter | Tool Genie</title>
+  <meta name="description" content="Convert PDF textbooks, lecture slides, and notes into active-recall flashcards. Export clean CSVs for Anki in seconds.">
   <link rel="canonical" href="https://toolgenie.app/pdf-to-flashcards.html">
   <meta name="robots" content="index,follow">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tool Genie">
-  <meta property="og:title" content="PDF to Flashcards | Tool Genie">
-  <meta property="og:description" content="Turn a study PDF into question-and-answer flashcards. Paste extracted text now; file upload is next. Export CSV for Anki.">
+  <meta property="og:title" content="PDF to Flashcards Converter | Tool Genie">
+  <meta property="og:description" content="Convert PDF textbooks, lecture slides, and notes into active-recall flashcards. Export clean CSVs for Anki in seconds.">
   <meta property="og:url" content="https://toolgenie.app/pdf-to-flashcards.html">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="PDF to Flashcards Converter | Tool Genie">
+  <meta name="twitter:description" content="Convert PDF textbooks, lecture slides, and notes into active-recall flashcards. Export clean CSVs for Anki in seconds.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect rx='8' width='32' height='32' fill='%231a1714'/><text x='16' y='22' text-anchor='middle' font-size='16' fill='%23f4efe6'>Tg</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,6 +26,24 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
   </script>
+  <script>
+    (function(){
+      var t=localStorage.getItem("toolgenie_theme");
+      if(!t&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)t="dark";
+      if(t)document.documentElement.setAttribute("data-theme",t);
+    })();
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "PDF to Flashcards Converter",
+    "url": "https://toolgenie.app/pdf-to-flashcards.html",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "All modern web browsers",
+    "description": "Convert PDF documents, textbooks, and slides into study flashcards formatted for Anki."
+  }
+  </script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -34,14 +54,20 @@
       <a href="index.html">Flashcards</a>
       <a href="pdf-to-flashcards.html" aria-current="page">PDF → cards</a>
       <a href="youtube-to-flashcards.html">YouTube → cards</a>
-      <a href="lecture-notes-to-flashcards.html">Lectures</a>
-      <a href="anki-export.html">Anki export</a>
+      <a href="lecture-notes-to-flashcards.html">Lecture → cards</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
     </nav>
-    <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-expanded="false" type="button">
-      <span class="bar"></span>
-      <span class="bar"></span>
-      <span class="bar"></span>
-    </button>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Switch to dark mode" title="Switch theme" type="button">
+        <span class="theme-icon">🌙</span>
+      </button>
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-expanded="false" type="button">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -60,7 +86,6 @@
           <a href="pdf-to-flashcards.html" class="menu-item active"><span class="menu-icon">📄</span> <span><strong>PDF to Flashcards</strong><small>Extract &amp; study textbook slides</small></span></a>
           <a href="youtube-to-flashcards.html" class="menu-item"><span class="menu-icon">🎥</span> <span><strong>YouTube Transcript Cards</strong><small>Clean timestamps &amp; turn to cards</small></span></a>
           <a href="lecture-notes-to-flashcards.html" class="menu-item"><span class="menu-icon">📑</span> <span><strong>Lecture Notes &amp; Files</strong><small>Drop slides, notes &amp; syllabus</small></span></a>
-          <a href="anki-export.html" class="menu-item"><span class="menu-icon">📥</span> <span><strong>Anki CSV Export</strong><small>Preview &amp; export clean CSVs</small></span></a>
         </nav>
       </div>
 
@@ -126,7 +151,7 @@
     <textarea id="source" name="source" maxlength="30000" placeholder="Extracted text from your uploaded PDF appears here, or you can paste text directly…"></textarea>
 
     <div class="row">
-      <label class="hint count-picker" for="count">Cards
+      <label class="hint count-picker" for="count" title="Target card count. If the topic is short, only maximum factual cards are created without filler. If extensive, cards expand automatically to cover all facts.">Cards
         <select id="count" name="count">
           <option>8</option>
           <option selected>12</option>
@@ -193,8 +218,7 @@
       <a href="index.html">AI flashcard generator</a><br>
       <a href="pdf-to-flashcards.html">PDF to flashcards</a><br>
       <a href="youtube-to-flashcards.html">YouTube to flashcards</a><br>
-      <a href="lecture-notes-to-flashcards.html">Lecture notes to flashcards</a><br>
-      <a href="anki-export.html">Anki export</a>
+      <a href="lecture-notes-to-flashcards.html">Lecture notes to flashcards</a>
     </div>
     <div>
       <strong>Site</strong><br>

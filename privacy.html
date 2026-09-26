@@ -12,13 +12,30 @@
   <meta property="og:title" content="Privacy Policy | Tool Genie">
   <meta property="og:description" content="How Tool Genie handles notes and analytics on the static site and future hosted app.">
   <meta property="og:url" content="https://toolgenie.app/privacy.html">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Privacy Policy | Tool Genie">
+  <meta name="twitter:description" content="How Tool Genie handles notes, PDFs, and data. Your study notes remain private and are never sold or used to train models.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect rx='8' width='32' height='32' fill='%231a1714'/><text x='16' y='22' text-anchor='middle' font-size='16' fill='%23f4efe6'>Tg</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
-  
+  <script>
+    (function(){
+      var t=localStorage.getItem("toolgenie_theme");
+      if(!t&&window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)t="dark";
+      if(t)document.documentElement.setAttribute("data-theme",t);
+    })();
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Privacy Policy",
+    "url": "https://toolgenie.app/privacy.html",
+    "description": "Tool Genie Privacy Policy: how your notes and study documents are processed."
+  }
+  </script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -29,14 +46,20 @@
       <a href="index.html">Flashcards</a>
       <a href="pdf-to-flashcards.html">PDF → cards</a>
       <a href="youtube-to-flashcards.html">YouTube → cards</a>
-      <a href="lecture-notes-to-flashcards.html">Lectures</a>
-      <a href="anki-export.html">Anki export</a>
+      <a href="lecture-notes-to-flashcards.html">Lecture → cards</a>
+      <a href="blog.html">Blog</a>
+      <a href="contact.html">Contact</a>
     </nav>
-    <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-expanded="false" type="button">
-      <span class="bar"></span>
-      <span class="bar"></span>
-      <span class="bar"></span>
-    </button>
+    <div class="nav-actions">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Switch to dark mode" title="Switch theme" type="button">
+        <span class="theme-icon">🌙</span>
+      </button>
+      <button class="menu-toggle" id="menu-toggle" aria-label="Open navigation menu" aria-expanded="false" type="button">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -55,7 +78,6 @@
           <a href="pdf-to-flashcards.html" class="menu-item"><span class="menu-icon">📄</span> <span><strong>PDF to Flashcards</strong><small>Extract &amp; study textbook slides</small></span></a>
           <a href="youtube-to-flashcards.html" class="menu-item"><span class="menu-icon">🎥</span> <span><strong>YouTube Transcript Cards</strong><small>Clean timestamps &amp; turn to cards</small></span></a>
           <a href="lecture-notes-to-flashcards.html" class="menu-item"><span class="menu-icon">📑</span> <span><strong>Lecture Notes &amp; Files</strong><small>Drop slides, notes &amp; syllabus</small></span></a>
-          <a href="anki-export.html" class="menu-item"><span class="menu-icon">📥</span> <span><strong>Anki CSV Export</strong><small>Preview &amp; export clean CSVs</small></span></a>
         </nav>
       </div>
 
@@ -105,8 +127,7 @@
       <a href="index.html">AI flashcard generator</a><br>
       <a href="pdf-to-flashcards.html">PDF to flashcards</a><br>
       <a href="youtube-to-flashcards.html">YouTube to flashcards</a><br>
-      <a href="lecture-notes-to-flashcards.html">Lecture notes to flashcards</a><br>
-      <a href="anki-export.html">Anki export</a>
+      <a href="lecture-notes-to-flashcards.html">Lecture notes to flashcards</a>
     </div>
     <div>
       <strong>Site</strong><br>

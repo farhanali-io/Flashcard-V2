@@ -1,6 +1,49 @@
 (function () {
   // Mobile & Desktop Hamburger Drawer Menu
   initNavMenu();
+  // Light / Dark Theme Switcher
+  initTheme();
+
+  function initTheme() {
+    const themeBtn = document.getElementById("theme-toggle");
+    const storedTheme = localStorage.getItem("toolgenie_theme");
+    const systemPrefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    let currentTheme = storedTheme || (systemPrefersDark ? "dark" : "light");
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("toolgenie_theme", theme);
+      if (themeBtn) {
+        const isDark = theme === "dark";
+        const iconSpan = themeBtn.querySelector(".theme-icon");
+        if (iconSpan) {
+          iconSpan.textContent = isDark ? "☀️" : "🌙";
+        } else {
+          themeBtn.textContent = isDark ? "☀️" : "🌙";
+        }
+        themeBtn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+        themeBtn.setAttribute("title", isDark ? "Switch to light mode" : "Switch to dark mode");
+      }
+    }
+
+    applyTheme(currentTheme);
+
+    if (themeBtn) {
+      themeBtn.addEventListener("click", () => {
+        const active = document.documentElement.getAttribute("data-theme") || "light";
+        const next = active === "dark" ? "light" : "dark";
+        applyTheme(next);
+      });
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+        if (!localStorage.getItem("toolgenie_theme")) {
+          applyTheme(e.matches ? "dark" : "light");
+        }
+      });
+    }
+  }
 
   function initNavMenu() {
     const toggleBtn = document.getElementById("menu-toggle");
@@ -139,14 +182,20 @@ The first direct visual evidence and radio image of a supermassive black hole at
   });
 
   // Client-side Smart Heuristic Flashcard Extractor (offline/fallback)
-  function extractHeuristicCards(text, maxCount) {
+  function extractHeuristicCards(text, requestedCount) {
     if (!text || text.trim().length < 15) return [];
-    const max = maxCount || 12;
+    const target = requestedCount || 12;
     const clean = text
       .replace(/\r\n/g, "\n")
       .replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]|\b\d{1,2}:\d{2}\b/g, "")
       .replace(/\s+/g, " ")
       .trim();
+
+    // If text is extensive (>1200 chars), automatically allow expanding up to 36 cards
+    // If text is short, stick to target as upper bound, never adding artificial fluff
+    const max = clean.length > 1200
+      ? Math.max(target, Math.min(36, Math.floor(clean.length / 115)))
+      : target;
 
     const cards = [];
     const seen = new Set();
@@ -254,7 +303,7 @@ The first direct visual evidence and radio image of a supermassive black hole at
   }
 
   // Render cards with full in-place editing, deleting, and actions
-  function render(cards) {
+  function render(cards, meta) {
     out.innerHTML = "";
     if (!cards || !cards.length) {
       out.innerHTML = '<p class="empty">Paste a block of notes or drop a PDF above, then click Generate flashcards.</p>';
@@ -263,12 +312,33 @@ The first direct visual evidence and radio image of a supermassive black hole at
       return;
     }
 
+    if (meta) {
+      window.__deckMeta = meta;
+    }
+    const currentMeta = window.__deckMeta || null;
+    let badgeHtml = "";
+    if (currentMeta && currentMeta.requestedCount) {
+      const req = currentMeta.requestedCount;
+      const actual = cards.length;
+      if (actual > req) {
+        badgeHtml = `<span class="deck-badge-pill expanded" title="Topic is extensive; cards automatically expanded to avoid omitting essential facts">✦ ${actual} cards in deck (expanded from ${req} for full coverage)</span>`;
+      } else if (actual < req) {
+        badgeHtml = `<span class="deck-badge-pill concise" title="Topic is focused; created maximum high-yield cards without filler">✦ ${actual} cards in deck (max facts, no filler)</span>`;
+      } else {
+        badgeHtml = `<span class="deck-badge-pill matched">✦ ${actual} cards in deck</span>`;
+      }
+    } else {
+      badgeHtml = `<span class="deck-badge-pill matched">✦ ${cards.length} cards in deck</span>`;
+    }
+
     // Top action bar
     const bar = document.createElement("div");
     bar.className = "deck-toolbar";
     bar.innerHTML = `
       <div class="deck-summary">
-        <strong>${cards.length} cards in deck</strong> — editable below
+        <strong>${cards.length} cards in deck</strong>
+        ${badgeHtml}
+        <span class="deck-hint-sub">— click any card to edit</span>
       </div>
       <div class="deck-buttons">
         <button type="button" class="btn ghost btn-sm" id="btn-add-card" style="padding:6px 12px;font-size:14px;">+ Add Card</button>
@@ -281,8 +351,9 @@ The first direct visual evidence and radio image of a supermassive black hole at
     // Bind bar buttons
     bar.querySelector("#btn-add-card").addEventListener("click", () => {
       window.__cards.push({ q: "New Question", a: "New Answer" });
-      render(window.__cards);
-      showStatus("New blank card added.");
+      if (window.__deckMeta) window.__deckMeta.actualCount = window.__cards.length;
+      render(window.__cards, window.__deckMeta);
+      showStatus(`New card added. ${window.__cards.length} cards in deck.`);
     });
 
     bar.querySelector("#btn-study-mode").addEventListener("click", () => {
@@ -333,8 +404,9 @@ The first direct visual evidence and radio image of a supermassive black hole at
       el.querySelector("[data-delete]").addEventListener("click", (e) => {
         const i = parseInt(e.currentTarget.dataset.delete, 10);
         window.__cards.splice(i, 1);
-        render(window.__cards);
-        showStatus(`Card ${i + 1} removed. ${window.__cards.length} cards remaining.`);
+        if (window.__deckMeta) window.__deckMeta.actualCount = window.__cards.length;
+        render(window.__cards, window.__deckMeta);
+        showStatus(`Card removed. ${window.__cards.length} cards in deck.`);
       });
 
       out.appendChild(el);
@@ -588,9 +660,25 @@ The first direct visual evidence and radio image of a supermassive black hole at
         const data = await res.json();
         if (data.cards && data.cards.length > 0) {
           window.__cards = data.cards;
-          render(window.__cards);
-          const isAi = data.model === "gemini-3.8-flash";
-          showStatus(`${window.__cards.length} flashcards ready. You can edit any card or export to Anki.`, isAi);
+          const req = data.requestedCount || n;
+          const actual = data.cards.length;
+          window.__deckMeta = {
+            requestedCount: req,
+            actualCount: actual,
+            model: data.model
+          };
+          render(window.__cards, window.__deckMeta);
+          const isAi = data.model && data.model !== "heuristic";
+
+          let statusMsg = "";
+          if (actual > req) {
+            statusMsg = `✓ ${actual} cards in deck (expanded from your target of ${req} to thoroughly cover this extensive topic).`;
+          } else if (actual < req) {
+            statusMsg = `✓ ${actual} cards in deck (maximum high-yield cards extracted from notes — no filler added).`;
+          } else {
+            statusMsg = `✓ ${actual} cards in deck ready. Click any card to edit or export to Anki.`;
+          }
+          showStatus(statusMsg, isAi);
           if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.textContent = originalBtnText;
@@ -605,12 +693,24 @@ The first direct visual evidence and radio image of a supermassive black hole at
     // Client-side fallback
     const fallbackCards = extractHeuristicCards(textToProcess, n);
     window.__cards = fallbackCards;
-    render(fallbackCards);
-    showStatus(
-      fallbackCards.length
-        ? `${fallbackCards.length} flashcards created. Click any card to edit questions or answers.`
-        : "Could not find enough distinct facts in the notes. Try adding more sentences or key terms."
-    );
+    const actual = fallbackCards.length;
+    window.__deckMeta = {
+      requestedCount: n,
+      actualCount: actual,
+      model: "heuristic"
+    };
+    render(fallbackCards, window.__deckMeta);
+    let fallbackMsg = "";
+    if (actual > n) {
+      fallbackMsg = `${actual} cards in deck (expanded to capture key points). Click any card to edit.`;
+    } else if (actual > 0 && actual < n) {
+      fallbackMsg = `${actual} cards in deck (maximum high-yield cards extracted without filler). Click any card to edit.`;
+    } else if (actual === n) {
+      fallbackMsg = `${actual} cards in deck ready. Click any card to edit or export to Anki.`;
+    } else {
+      fallbackMsg = "Could not find enough distinct facts in the notes. Try adding more sentences or key terms.";
+    }
+    showStatus(fallbackMsg, false);
 
     if (submitBtn) {
       submitBtn.disabled = false;
